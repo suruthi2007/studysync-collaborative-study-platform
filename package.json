@@ -1,0 +1,15 @@
+{
+  "name": "studysync",
+  "version": "1.0.0",
+  "description": "StudySync - A Real-Time Collaborative Study Platform for Students",
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "dev": "concurrently --kill-others-on-fail \"npm run server\" \"npm run client\"",
+    "build": "cd client && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
