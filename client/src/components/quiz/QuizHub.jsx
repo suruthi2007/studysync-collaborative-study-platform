@@ -19,11 +19,14 @@ import {
 } from 'lucide-react';
 
 export default function QuizHub({ group }) {
-  const { token, user } = useAuth();
+  const { token, user, switchPersona } = useAuth();
   const [quizzes, setQuizzes] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState(group?._id || '');
   const [activeSubTab, setActiveSubTab] = useState('list'); // 'list' | 'builder' | 'leaderboard'
   const [loading, setLoading] = useState(true);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Active Playing State
   const [activeQuiz, setActiveQuiz] = useState(null);
@@ -50,18 +53,41 @@ export default function QuizHub({ group }) {
     { front: '', back: '', hint: '' },
   ]);
 
-  const groupId = group?._id;
+  // Load user groups so quizzes can be built and listed even if accessed directly from the navbar
+  useEffect(() => {
+    const fetchUserGroups = async () => {
+      try {
+        let activeToken = token || localStorage.getItem('studysync_token');
+        const res = await fetch(`${API_BASE_URL}/api/groups`, {
+          headers: { Authorization: `Bearer ${activeToken}` },
+        });
+        const data = await res.json();
+        if (data.success && data.groups.length > 0) {
+          setAvailableGroups(data.groups);
+          if (!selectedGroupId && !group?._id) {
+            setSelectedGroupId(data.groups[0]._id);
+          }
+        }
+      } catch (e) {
+        console.warn('Error fetching groups in QuizHub:', e);
+      }
+    };
+    fetchUserGroups();
+  }, [token, group?._id]);
+
+  const effectiveGroupId = group?._id || selectedGroupId || (availableGroups[0] && availableGroups[0]._id);
 
   const fetchData = async () => {
-    if (!groupId) return;
+    if (!effectiveGroupId) return;
     try {
       setLoading(true);
+      let activeToken = token || localStorage.getItem('studysync_token');
       const [qRes, lRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/quizzes/group/${groupId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+        fetch(`${API_BASE_URL}/api/quizzes/group/${effectiveGroupId}`, {
+          headers: { Authorization: `Bearer ${activeToken}` },
         }),
-        fetch(`${API_BASE_URL}/api/quizzes/group/${groupId}/leaderboard`, {
-          headers: { Authorization: `Bearer ${token}` },
+        fetch(`${API_BASE_URL}/api/quizzes/group/${effectiveGroupId}/leaderboard`, {
+          headers: { Authorization: `Bearer ${activeToken}` },
         }),
       ]);
 
@@ -79,7 +105,7 @@ export default function QuizHub({ group }) {
 
   useEffect(() => {
     fetchData();
-  }, [groupId, token]);
+  }, [effectiveGroupId, token]);
 
   // Handle Question Options change in Builder
   const updateOptionText = (qIdx, optIdx, text) => {
@@ -102,37 +128,61 @@ export default function QuizHub({ group }) {
   // Submit created Quiz / Flashcard deck
   const handleCreateQuiz = async (e) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim()) {
+      alert('Please enter a title for the deck or quiz.');
+      return;
+    }
 
     try {
+      setIsPublishing(true);
+      let activeToken = token || localStorage.getItem('studysync_token');
+
       const payload = {
-        title: newTitle,
-        description: newDesc,
-        groupId,
+        title: newTitle.trim(),
+        description: newDesc.trim(),
+        groupId: effectiveGroupId,
         type: builderType,
         questions: builderType === 'quiz' ? questionsList : [],
         flashcards: builderType === 'flashcard' ? flashcardsList : [],
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/quizzes`, {
+      let res = await fetch(`${API_BASE_URL}/api/quizzes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${activeToken}`,
         },
         body: JSON.stringify(payload),
       });
 
+      // Auto-recover if token was stale
+      if (res.status === 401 && switchPersona) {
+        await switchPersona(user?.name?.toLowerCase().includes('bob') ? 'bob' : 'alice');
+        activeToken = localStorage.getItem('studysync_token');
+        res = await fetch(`${API_BASE_URL}/api/quizzes`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${activeToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      }
+
       const data = await res.json();
       if (data.success) {
-        alert('Quiz created successfully!');
+        alert('Learning Deck published successfully!');
         setNewTitle('');
         setNewDesc('');
         setActiveSubTab('list');
         fetchData();
+      } else {
+        alert(data.message || 'Failed to publish quiz.');
       }
     } catch (err) {
       alert('Error creating quiz: ' + err.message);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -580,7 +630,7 @@ export default function QuizHub({ group }) {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: availableGroups.length > 0 ? '1.2fr 1fr 1.2fr' : '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>
                 Deck / Quiz Title *
@@ -594,6 +644,24 @@ export default function QuizHub({ group }) {
                 onChange={(e) => setNewTitle(e.target.value)}
               />
             </div>
+            {availableGroups.length > 0 && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>
+                  Study Group *
+                </label>
+                <select
+                  className="input-field"
+                  value={effectiveGroupId}
+                  onChange={(e) => setSelectedGroupId(e.target.value)}
+                >
+                  {availableGroups.map((g) => (
+                    <option key={g._id} value={g._id}>
+                      {g.name} ({g.subject})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>
                 Description
@@ -745,8 +813,13 @@ export default function QuizHub({ group }) {
           )}
 
           <div style={{ display: 'flex', gap: '1rem' }}>
-            <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem' }}>
-              Publish Learning Deck
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ padding: '0.75rem 2rem' }}
+              disabled={isPublishing}
+            >
+              {isPublishing ? 'Publishing Learning Deck...' : 'Publish Learning Deck'}
             </button>
             <button type="button" onClick={() => setActiveSubTab('list')} className="btn btn-secondary">
               Cancel

@@ -26,12 +26,12 @@ export default function Navbar({ activeTab, setActiveTab, activeGroup }) {
   return (
     <header style={{
       borderBottom: '1px solid var(--border-color)',
-      backgroundColor: 'rgba(10, 14, 23, 0.85)',
+      backgroundColor: 'rgba(10, 14, 23, 0.92)',
       backdropFilter: 'blur(16px)',
       position: 'sticky',
       top: 0,
       zIndex: 50,
-      padding: '0.75rem 1.5rem',
+      padding: '0.4rem 1rem',
     }}>
       <div style={{
         maxWidth: '1440px',
@@ -40,29 +40,29 @@ export default function Navbar({ activeTab, setActiveTab, activeGroup }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '1rem',
+        gap: '0.6rem',
       }}>
         {/* Brand Logo */}
         <div 
           onClick={() => setActiveTab('groups')}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer' }}
         >
           <div style={{
             background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            padding: '0.5rem',
-            borderRadius: '10px',
+            padding: '0.4rem',
+            borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)',
           }}>
-            <Sparkles size={20} color="#ffffff" />
+            <Sparkles size={18} color="#ffffff" />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span style={{
                 fontFamily: 'var(--font-heading)',
-                fontSize: '1.25rem',
+                fontSize: '1.15rem',
                 fontWeight: 800,
                 background: 'linear-gradient(90deg, #ffffff 0%, #c7d2fe 100%)',
                 WebkitBackgroundClip: 'text',
@@ -70,11 +70,11 @@ export default function Navbar({ activeTab, setActiveTab, activeGroup }) {
               }}>
                 StudySync
               </span>
-              <span className="badge badge-indigo" style={{ fontSize: '0.65rem' }}>
+              <span className="badge badge-indigo" style={{ fontSize: '0.6rem', padding: '0.1rem 0.4rem' }}>
                 Collab Hub
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
               <span className={isConnected ? "online-pulse" : ""} style={{ backgroundColor: isConnected ? '#10b981' : '#ef4444' }} />
               <span>{isConnected ? 'Real-Time Connected' : 'Connecting...'}</span>
             </div>
@@ -82,7 +82,7 @@ export default function Navbar({ activeTab, setActiveTab, activeGroup }) {
         </div>
 
         {/* Navigation Tabs */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -93,28 +93,28 @@ export default function Navbar({ activeTab, setActiveTab, activeGroup }) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 0.85rem',
+                  gap: '0.4rem',
+                  padding: '0.35rem 0.65rem',
                   borderRadius: 'var(--radius-md)',
                   background: isActive ? 'rgba(99, 102, 241, 0.18)' : 'transparent',
                   color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
                   border: isActive ? '1px solid rgba(99, 102, 241, 0.35)' : '1px solid transparent',
                   cursor: 'pointer',
                   fontWeight: 600,
-                  fontSize: '0.85rem',
+                  fontSize: '0.8rem',
                   transition: 'all 0.2s ease',
                 }}
               >
-                <Icon size={16} />
+                <Icon size={15} />
                 <span>{item.label}</span>
                 {item.badge && (
                   <span style={{
-                    fontSize: '0.65rem',
-                    padding: '0.15rem 0.4rem',
+                    fontSize: '0.62rem',
+                    padding: '0.1rem 0.35rem',
                     borderRadius: '999px',
                     background: isActive ? '#4f46e5' : 'rgba(255,255,255,0.08)',
                     color: '#ffffff',
-                    maxWidth: '110px',
+                    maxWidth: '100px',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -128,13 +128,13 @@ export default function Navbar({ activeTab, setActiveTab, activeGroup }) {
         </nav>
 
         {/* Multi-Window Demo Persona Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.35rem',
+            gap: '0.25rem',
             background: 'rgba(255, 255, 255, 0.04)',
-            padding: '0.25rem 0.5rem',
+            padding: '0.2rem 0.4rem',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
           }}>

@@ -21,10 +21,69 @@ export default function VideoCall({ roomId }) {
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [peers, setPeers] = useState({}); // { [peerSocketId]: { stream, userName } }
+  const [activeCallers, setActiveCallers] = useState([]); // Callers currently in the room
+  const [incomingCall, setIncomingCall] = useState(null); // { callerName, timestamp }
   
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef({}); // { [peerSocketId]: RTCPeerConnection }
+
+  // Sound chime when a call is started by a peer
+  const playCallChime = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.18); // A5
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.45);
+    } catch (e) {
+      // AudioContext could be blocked until user interacts
+    }
+  };
+
+  // Listen for real-time room call status and incoming call alerts across the room
+  useEffect(() => {
+    if (!socket || !roomId) return;
+
+    // Check if a call is already in progress
+    socket.emit('video-get-status', { roomId });
+
+    const handleRoomStatus = ({ callers }) => {
+      setActiveCallers(callers || []);
+    };
+
+    const handleIncomingAlert = ({ callerName, timestamp }) => {
+      if (!isInCall) {
+        setIncomingCall({ callerName, timestamp });
+        playCallChime();
+      }
+    };
+
+    socket.on('video-room-status', handleRoomStatus);
+    socket.on('video-incoming-call-alert', handleIncomingAlert);
+
+    return () => {
+      socket.off('video-room-status', handleRoomStatus);
+      socket.off('video-incoming-call-alert', handleIncomingAlert);
+    };
+  }, [socket, roomId, isInCall]);
+
+  // Ensure local video stream is attached whenever call state activates
+  useEffect(() => {
+    if (isInCall && localVideoRef.current && localStreamRef.current) {
+      if (localVideoRef.current.srcObject !== localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+        localVideoRef.current.play().catch(() => {});
+      }
+    }
+  }, [isInCall]);
 
   // ICE Servers (Standard free Google STUN)
   const iceServers = {
@@ -69,13 +128,28 @@ export default function VideoCall({ roomId }) {
         };
         drawAvatarStream();
         stream = canvas.captureStream(25);
+
+        // Add an active audio track to the fallback stream so WebRTC audio negotiation succeeds
+        try {
+          const actx = new (window.AudioContext || window.webkitAudioContext)();
+          const dest = actx.createMediaStreamDestination();
+          const osc = actx.createOscillator();
+          const gain = actx.createGain();
+          gain.gain.value = 0.0001; // subtle carrier wave for WebRTC transport
+          osc.connect(gain);
+          gain.connect(dest);
+          osc.start();
+          const audioTrack = dest.stream.getAudioTracks()[0];
+          if (audioTrack) {
+            stream.addTrack(audioTrack);
+          }
+        } catch (audioErr) {
+          console.warn('Fallback audio track creation error:', audioErr);
+        }
       }
 
       localStreamRef.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-
+      setIncomingCall(null);
       setIsInCall(true);
 
       // Notify socket server to join WebRTC room
@@ -306,25 +380,95 @@ export default function VideoCall({ roomId }) {
   const peerEntries = Object.entries(peers);
 
   return (
-    <div className="glass-panel" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <VideoIcon size={18} color="#10b981" />
-          <h4 style={{ fontSize: '0.95rem' }}>Live Video & Audio Room</h4>
-          <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>WebRTC Mesh</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      {/* Real-time Incoming Call Notification Banner */}
+      {incomingCall && !isInCall && (
+        <div className="glass-panel" style={{
+          padding: '0.65rem 1rem',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(99, 102, 241, 0.25) 100%)',
+          border: '1px solid rgba(16, 185, 129, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span className="online-pulse" style={{ width: '9px', height: '9px', backgroundColor: '#10b981' }} />
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>
+                🔔 Incoming Video Call!
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>
+                <strong>{incomingCall.callerName}</strong> is calling everyone in this room.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              onClick={startCall}
+              className="btn btn-emerald"
+              style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem', boxShadow: '0 0 12px rgba(16, 185, 129, 0.6)' }}
+            >
+              <VideoIcon size={14} /> Answer & Join
+            </button>
+            <button
+              onClick={() => setIncomingCall(null)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                color: '#94a3b8',
+                borderRadius: '6px',
+                padding: '0.35rem 0.55rem',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
         </div>
+      )}
 
-        {!isInCall ? (
-          <button onClick={startCall} className="btn btn-emerald" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
-            <VideoIcon size={14} /> Join Video Call
-          </button>
-        ) : (
-          <button onClick={endCall} className="btn btn-danger" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
-            <PhoneOff size={14} /> Leave Call
-          </button>
-        )}
-      </div>
+      {/* Main Video Call Container */}
+      <div className="glass-panel" style={{ padding: '0.6rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <VideoIcon size={18} color="#10b981" />
+            <h4 style={{ fontSize: '0.95rem' }}>
+              {activeCallers.length > 0 && !isInCall ? 'Live Call in Progress' : 'Live Video & Audio Room'}
+            </h4>
+            {activeCallers.length > 0 && !isInCall ? (
+              <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
+                🟢 {activeCallers.map(c => c.userName).join(', ')} in call
+              </span>
+            ) : (
+              <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>WebRTC Mesh</span>
+            )}
+          </div>
+
+          {!isInCall ? (
+            <button
+              onClick={startCall}
+              className="btn btn-emerald"
+              style={{
+                padding: '0.4rem 0.85rem',
+                fontSize: '0.8rem',
+                boxShadow: activeCallers.length > 0 ? '0 0 16px rgba(16, 185, 129, 0.6)' : undefined,
+              }}
+            >
+              <VideoIcon size={14} /> {activeCallers.length > 0 ? `Join ${activeCallers[0]?.userName || ''} in Call` : 'Join Video Call'}
+            </button>
+          ) : (
+            <button onClick={endCall} className="btn btn-danger" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
+              <PhoneOff size={14} /> Leave Call
+            </button>
+          )}
+        </div>
 
       {/* Video Streams Grid */}
       {isInCall && (
@@ -344,7 +488,13 @@ export default function VideoCall({ roomId }) {
             aspectRatio: '16/9',
           }}>
             <video
-              ref={localVideoRef}
+              ref={(node) => {
+                localVideoRef.current = node;
+                if (node && localStreamRef.current && node.srcObject !== localStreamRef.current) {
+                  node.srcObject = localStreamRef.current;
+                  node.play().catch(() => {});
+                }
+              }}
               autoPlay
               muted
               playsInline
@@ -386,7 +536,10 @@ export default function VideoCall({ roomId }) {
                 autoPlay
                 playsInline
                 ref={(node) => {
-                  if (node && peerData.stream) node.srcObject = peerData.stream;
+                  if (node && peerData.stream && node.srcObject !== peerData.stream) {
+                    node.srcObject = peerData.stream;
+                    node.play().catch(e => console.warn('Remote video playback warning:', e));
+                  }
                 }}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -448,6 +601,7 @@ export default function VideoCall({ roomId }) {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch --watch-path=routes --watch-path=models --watch-path=config --watch-path=socket --watch-path=server.js --watch-path=seedData.js server.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",

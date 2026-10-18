@@ -109,7 +109,7 @@ export default function Whiteboard({ roomId }) {
 
     const rect = container.getBoundingClientRect();
     canvas.width = rect.width;
-    canvas.height = 580; // Fixed height for room whiteboard
+    canvas.height = 460; // Clean balanced height for room whiteboard
 
     const ctx = canvas.getContext('2d');
     ctx.drawImage(tempCanvas, 0, 0);
@@ -318,11 +318,11 @@ export default function Whiteboard({ roomId }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.75rem 1.25rem',
+        padding: '0.45rem 1rem',
         borderBottom: '1px solid var(--border-color)',
         background: 'rgba(15, 23, 42, 0.7)',
         flexWrap: 'wrap',
-        gap: '0.5rem',
+        gap: '0.4rem',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <span className="badge badge-indigo">
@@ -365,7 +365,7 @@ export default function Whiteboard({ roomId }) {
       <div 
         ref={containerRef} 
         className="whiteboard-canvas-container"
-        style={{ position: 'relative', width: '100%', height: '580px', userSelect: 'none' }}
+        style={{ position: 'relative', width: '100%', height: '460px', userSelect: 'none' }}
       >
         <canvas
           ref={canvasRef}

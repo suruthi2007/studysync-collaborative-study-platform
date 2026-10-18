@@ -10,15 +10,20 @@ export default function LiveChat({ roomId }) {
   const [inputText, setInputText] = useState('');
   const [activeUsers, setActiveUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (smooth = true) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom(false);
   }, [messages]);
 
   useEffect(() => {
@@ -103,12 +108,12 @@ export default function LiveChat({ roomId }) {
     <div className="glass-panel" style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '675px',
+      height: '560px',
       overflow: 'hidden',
     }}>
       {/* Chat Header */}
       <div style={{
-        padding: '0.85rem 1rem',
+        padding: '0.75rem 1rem',
         borderBottom: '1px solid var(--border-color)',
         background: 'rgba(15, 23, 42, 0.7)',
         display: 'flex',
@@ -128,7 +133,7 @@ export default function LiveChat({ roomId }) {
 
       {/* Online Participants Pills */}
       <div style={{
-        padding: '0.5rem 0.75rem',
+        padding: '0.4rem 0.75rem',
         background: 'rgba(0, 0, 0, 0.2)',
         borderBottom: '1px solid var(--border-color)',
         display: 'flex',
@@ -156,14 +161,17 @@ export default function LiveChat({ roomId }) {
       </div>
 
       {/* Messages Feed */}
-      <div style={{
-        flex: 1,
-        padding: '1rem',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-      }}>
+      <div 
+        ref={messagesContainerRef}
+        style={{
+          flex: 1,
+          padding: '0.85rem',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+        }}
+      >
         {messages.length === 0 ? (
           <div style={{ textAlign: 'center', margin: 'auto', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
             No messages yet. Say hello to your study peers!
@@ -171,6 +179,27 @@ export default function LiveChat({ roomId }) {
         ) : (
           messages.map((m) => {
             if (m.isSystem) {
+              if (m.isCallNotification) {
+                return (
+                  <div
+                    key={m.id}
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(99, 102, 241, 0.16) 100%)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      borderRadius: '10px',
+                      padding: '0.5rem 0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontSize: '0.78rem',
+                      color: '#6ee7b7',
+                    }}
+                  >
+                    <span className="online-pulse" style={{ backgroundColor: '#10b981', width: '8px', height: '8px' }} />
+                    <span>{m.text}</span>
+                  </div>
+                );
+              }
               return (
                 <div key={m.id} style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                   {m.text}
@@ -212,7 +241,6 @@ export default function LiveChat({ roomId }) {
             );
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Typing Indicator */}

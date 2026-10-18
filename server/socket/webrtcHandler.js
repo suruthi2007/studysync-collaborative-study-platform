@@ -1,10 +1,24 @@
 const roomPeers = new Map();
+// Stores active callers per room: Map<roomId, Map<socketId, { socketId, userId, userName }>>
+const roomCallers = new Map();
 
 /**
  * WebRTC Signaling Handler for multi-user peer-to-peer video/audio calling.
- * Handles peer discovery, offer/answer exchange, ICE candidates, and clean disconnects.
+ * Handles peer discovery, offer/answer exchange, ICE candidates, and real-time room notifications.
  */
 function registerWebRTCHandlers(io, socket) {
+  // Check active video callers for a room
+  socket.on('video-get-status', ({ roomId }) => {
+    if (!roomId) return;
+    const callersMap = roomCallers.get(roomId);
+    const callers = callersMap ? Array.from(callersMap.values()) : [];
+    socket.emit('video-room-status', {
+      roomId,
+      callers,
+      isCallActive: callers.length > 0,
+    });
+  });
+
   // Join video mesh room
   socket.on('video-join-room', ({ roomId, userId, userName }) => {
     socket.join(`video:${roomId}`);
@@ -16,19 +30,59 @@ function registerWebRTCHandlers(io, socket) {
       roomPeers.set(roomId, new Set());
     }
 
+    if (!roomCallers.has(roomId)) {
+      roomCallers.set(roomId, new Map());
+    }
+
     const peersInRoom = Array.from(roomPeers.get(roomId)).filter(id => id !== socket.id);
     roomPeers.get(roomId).add(socket.id);
 
-    // Send the list of existing peers in the room to the new peer
+    const callersMap = roomCallers.get(roomId);
+    callersMap.set(socket.id, {
+      socketId: socket.id,
+      userId,
+      userName: userName || 'Student',
+      joinedAt: new Date().toISOString(),
+    });
+
+    const currentCallers = Array.from(callersMap.values());
+
+    // 1. Send existing video peers to the newly joined peer for WebRTC mesh handshake
     socket.emit('video-all-peers', {
       peers: peersInRoom,
     });
 
-    // Notify others that a new user joined the call
+    // 2. Notify other active video peers so they establish a peer connection
     socket.to(`video:${roomId}`).emit('video-user-joined', {
       callerId: socket.id,
       userId,
       userName,
+    });
+
+    // 3. Broadcast to EVERYONE in the study room (chat channel) that a call is active & who is in it!
+    io.to(`chat:${roomId}`).emit('video-room-status', {
+      roomId,
+      callers: currentCallers,
+      isCallActive: true,
+    });
+
+    // 4. Send an incoming call notification / alert to peers who haven't joined the call yet
+    socket.to(`chat:${roomId}`).emit('video-incoming-call-alert', {
+      callerName: userName || 'A study partner',
+      callerId: socket.id,
+      roomId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // 5. Post an automated system message into the chat room
+    io.to(`chat:${roomId}`).emit('chat-message', {
+      id: `call-start-${Date.now()}-${Math.random()}`,
+      sender: { name: 'StudySync Live', avatar: '' },
+      text: `📹 ${userName || 'A student'} started a video study call.`,
+      isSystem: true,
+      isCallNotification: true,
+      callerName: userName,
+      timestamp: new Date().toISOString(),
     });
   });
 
@@ -69,12 +123,39 @@ function registerWebRTCHandlers(io, socket) {
 
 function handleVideoLeave(socket, io) {
   const roomId = socket.data.videoRoomId;
+  const userName = socket.data.userName;
+
   if (roomId && roomPeers.has(roomId)) {
     roomPeers.get(roomId).delete(socket.id);
     io.to(`video:${roomId}`).emit('video-user-left', {
       socketId: socket.id,
       userId: socket.data.userId,
     });
+  }
+
+  if (roomId && roomCallers.has(roomId)) {
+    const callersMap = roomCallers.get(roomId);
+    callersMap.delete(socket.id);
+    const currentCallers = Array.from(callersMap.values());
+
+    // Broadcast updated call status to room
+    io.to(`chat:${roomId}`).emit('video-room-status', {
+      roomId,
+      callers: currentCallers,
+      isCallActive: currentCallers.length > 0,
+    });
+
+    if (userName) {
+      io.to(`chat:${roomId}`).emit('chat-message', {
+        id: `call-leave-${Date.now()}-${Math.random()}`,
+        sender: { name: 'StudySync Live', avatar: '' },
+        text: currentCallers.length === 0 
+          ? `📞 The video call has ended.` 
+          : `📞 ${userName} left the video call (${currentCallers.length} remaining).`,
+        isSystem: true,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 }
 

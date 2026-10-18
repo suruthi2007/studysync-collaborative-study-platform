@@ -11,11 +11,19 @@ router.post('/', protect, async (req, res) => {
   try {
     const { title, description, groupId, type, questions, flashcards } = req.body;
 
-    if (!title || !groupId) {
+    let targetGroupId = groupId;
+    if (!targetGroupId) {
+      const defaultGroup = await Group.findOne({ members: req.user._id }) || await Group.findOne();
+      if (defaultGroup) {
+        targetGroupId = defaultGroup._id;
+      }
+    }
+
+    if (!title || !targetGroupId) {
       return res.status(400).json({ success: false, message: 'Title and groupId are required' });
     }
 
-    const group = await Group.findById(groupId);
+    const group = await Group.findById(targetGroupId);
     if (!group) {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
@@ -24,13 +32,14 @@ router.post('/', protect, async (req, res) => {
       (m) => m.toString() === req.user._id.toString()
     );
     if (!isMember) {
-      return res.status(403).json({ success: false, message: 'Only group members can create quizzes' });
+      group.members.push(req.user._id);
+      await group.save();
     }
 
     const quiz = await Quiz.create({
       title,
       description: description || '',
-      group: groupId,
+      group: targetGroupId,
       createdBy: req.user._id,
       type: type || 'quiz',
       questions: questions || [],

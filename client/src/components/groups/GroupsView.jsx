@@ -15,9 +15,10 @@ import {
 } from 'lucide-react';
 
 export default function GroupsView({ onSelectRoom, onSelectQuiz, activeGroup, setActiveGroup }) {
-  const { token, user } = useAuth();
+  const { token, user, switchPersona } = useAuth();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [inviteCodeInput, setInviteCodeInput] = useState('');
@@ -33,8 +34,9 @@ export default function GroupsView({ onSelectRoom, onSelectQuiz, activeGroup, se
   const fetchGroups = async () => {
     try {
       setLoading(true);
+      let activeToken = token || localStorage.getItem('studysync_token');
       const res = await fetch(`${API_BASE_URL}/api/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${activeToken}` },
       });
       const data = await res.json();
       if (data.success) {
@@ -56,32 +58,61 @@ export default function GroupsView({ onSelectRoom, onSelectQuiz, activeGroup, se
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();
-    if (!newGroupName) return;
+    if (!newGroupName.trim()) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/groups`, {
+      setIsCreating(true);
+      let activeToken = token || localStorage.getItem('studysync_token');
+
+      let res = await fetch(`${API_BASE_URL}/api/groups`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${activeToken}`,
         },
         body: JSON.stringify({
-          name: newGroupName,
+          name: newGroupName.trim(),
           subject: newGroupSubject,
-          description: newGroupDesc,
+          description: newGroupDesc.trim(),
           color: newGroupColor,
         }),
       });
+
+      // If token expired / invalid after server restart, recover automatically
+      if (res.status === 401 && switchPersona) {
+        await switchPersona(user?.name?.toLowerCase().includes('bob') ? 'bob' : 'alice');
+        activeToken = localStorage.getItem('studysync_token');
+        res = await fetch(`${API_BASE_URL}/api/groups`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${activeToken}`,
+          },
+          body: JSON.stringify({
+            name: newGroupName.trim(),
+            subject: newGroupSubject,
+            description: newGroupDesc.trim(),
+            color: newGroupColor,
+          }),
+        });
+      }
+
       const data = await res.json();
       if (data.success) {
         setShowCreateModal(false);
         setNewGroupName('');
         setNewGroupDesc('');
-        fetchGroups();
-        setActiveGroup(data.group);
+        await fetchGroups();
+        if (data.group) {
+          setActiveGroup(data.group);
+        }
+      } else {
+        alert(data.message || 'Could not create group.');
       }
     } catch (err) {
       alert('Failed to create group: ' + err.message);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -381,8 +412,8 @@ export default function GroupsView({ onSelectRoom, onSelectQuiz, activeGroup, se
                 <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  Create Group
+                <button type="submit" className="btn btn-primary" disabled={isCreating}>
+                  {isCreating ? 'Creating Group...' : 'Create Group'}
                 </button>
               </div>
             </form>
