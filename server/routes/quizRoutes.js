@@ -53,6 +53,28 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/quizzes
+// @desc    Get all quizzes/flashcard sets accessible by user
+router.get('/', protect, async (req, res) => {
+  try {
+    const userGroups = await Group.find({ members: req.user._id }).select('_id');
+    const groupIds = userGroups.map(g => g._id);
+    const quizzes = await Quiz.find({
+      $or: [
+        { group: { $in: groupIds } },
+        { createdBy: req.user._id }
+      ]
+    })
+      .populate('createdBy', 'name email avatar')
+      .populate('group', 'name subject color')
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, quizzes });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // @route   GET /api/quizzes/group/:groupId
 // @desc    Get all quizzes/flashcard sets for a group
 router.get('/group/:groupId', protect, async (req, res) => {

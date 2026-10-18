@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { API_BASE_URL } from './AuthContext';
+import { API_URL } from '../config';
 
 const SocketContext = createContext();
 
@@ -9,7 +9,7 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const newSocket = io(API_BASE_URL, {
+    const newSocket = io(API_URL, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
