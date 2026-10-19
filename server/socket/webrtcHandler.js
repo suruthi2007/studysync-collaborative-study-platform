@@ -1,6 +1,7 @@
 const roomPeers = new Map();
 // Stores active callers per room: Map<roomId, Map<socketId, { socketId, userId, userName }>>
 const roomCallers = new Map();
+const { addChatMessage } = require('./chatHandler');
 
 /**
  * WebRTC Signaling Handler for multi-user peer-to-peer video/audio calling.
@@ -75,16 +76,19 @@ function registerWebRTCHandlers(io, socket) {
     });
 
     // 5. Post an automated system message into the chat room
-    io.to(`chat:${roomId}`).emit('chat-message', {
-      id: `call-start-${Date.now()}-${Math.random()}`,
+    const callNotice = {
+      id: `call-start-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       sender: { name: 'StudySync Live', avatar: '' },
       text: `📹 ${userName || 'A student'} started a video study call.`,
       isSystem: true,
       isCallNotification: true,
       callerName: userName,
       timestamp: new Date().toISOString(),
-    });
+    };
+    addChatMessage(roomId, callNotice);
+    io.to(`chat:${roomId}`).emit('chat-message', callNotice);
   });
+
 
   // Relay WebRTC signal offer
   socket.on('video-signal-offer', ({ targetSocketId, offer, callerId, userName }) => {

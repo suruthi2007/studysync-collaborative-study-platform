@@ -125,8 +125,12 @@ export default function Whiteboard({ roomId }) {
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    // Join room whiteboard channel
-    socket.emit('wb-join', { roomId });
+    const joinWhiteboard = () => {
+      socket.emit('wb-join', { roomId });
+    };
+
+    joinWhiteboard();
+    socket.on('connect', joinWhiteboard);
 
     // Initial state upon entering room
     const handleInitState = ({ actions }) => {
@@ -170,12 +174,14 @@ export default function Whiteboard({ roomId }) {
     socket.on('wb-cursor-moved', handleCursorMoved);
 
     return () => {
+      socket.off('connect', joinWhiteboard);
       socket.off('wb-init-state', handleInitState);
       socket.off('wb-draw-segment', handleDrawSegment);
       socket.off('wb-clear', handleClear);
       socket.off('wb-cursor-moved', handleCursorMoved);
     };
   }, [socket, roomId, drawSegment]);
+
 
   // Mouse / Touch drawing handlers
   const getCanvasCoords = (e) => {
