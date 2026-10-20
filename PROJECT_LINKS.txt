@@ -1,0 +1,55 @@
+================================================================================
+STUDYSYNC — REAL-TIME COLLABORATIVE STUDY PLATFORM
+MAJOR PROJECT SUBMISSION DETAILS
+================================================================================
+
+📌 PROJECT INFORMATION:
+- Project Name: StudySync — Real-Time Collaborative Study Platform
+- Author / Developer: Suruthi
+- Domain: Full-Stack Web Development / Real-Time Collaboration
+
+--------------------------------------------------------------------------------
+🌐 LIVE PROJECT LINKS:
+--------------------------------------------------------------------------------
+1. Live Application URL:
+   https://studysync-collaborative-study-platf.vercel.app
+
+2. GitHub Source Code Repository:
+   https://github.com/suruthi2007/studysync-collaborative-study-platform
+
+3. Video Demonstration Walkthrough (Google Drive):
+   https://drive.google.com/file/d/1m9ai4sW3XU7calVZMfBTl7EGY8MGm6e1/view?usp=sharing
+
+--------------------------------------------------------------------------------
+🛠️ KEY FEATURES IMPLEMENTED:
+--------------------------------------------------------------------------------
+1. Virtual Study Rooms & Multi-User Collaboration:
+   - Real-time collaborative HTML5 Canvas whiteboard with shape drawing, undo, eraser, and PNG export.
+   - Live multi-user mouse cursor tracking and presence indicator.
+   - Synchronized group chat with live typing indicators powered by Socket.io.
+   - WebRTC peer-to-peer audio/video conferencing and screen sharing.
+
+2. Study Groups & Member-Only Resource Drive:
+   - Group creation with instant invite codes (e.g. "calc-101").
+   - Secure document sharing repository with AWS S3 integration and local storage fallback.
+
+3. Peer-to-Peer Quizzing & Gamified Leaderboard:
+   - Interactive quiz player with real-time scoring, confetti celebrations, and explanations.
+   - 3D interactive flip flashcards for memorization.
+   - Dynamic group leaderboard tracking points and accuracy.
+
+4. Tutor Marketplace & Anti-Double-Booking Engine:
+   - Tutor directory filtered by subject, rating, and hourly rate.
+   - Calendly-style interactive date and time-slot booking.
+   - Anti-double-booking collision protection preventing simultaneous reservations.
+   - Automatic meeting room generation for booked sessions.
+
+--------------------------------------------------------------------------------
+💻 TECH STACK:
+--------------------------------------------------------------------------------
+- Frontend: React 19, Vite, Socket.io-client, WebRTC, Tailwind / Vanilla CSS
+- Backend: Node.js, Express.js, Socket.io
+- Database: MongoDB / Mongoose (Atlas + Embedded In-Memory fallback)
+- Cloud Storage: AWS S3 SDK
+- Deployment: Vercel (Frontend), Cloud hosting (Backend)
+================================================================================
