@@ -6,9 +6,16 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%20%2F%20Embedded-brightgreen.svg)](https://www.mongodb.com/)
 [![WebRTC](https://img.shields.io/badge/WebRTC-Peer--to--Peer-orange.svg)](https://webrtc.org/)
 
+[![Vercel Deployment](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://studysync-collaborative-study-platf.vercel.app)
+
 > **Full-Stack Internship Capstone Project**: Recreating the vibrant "library study group" vibe digitally through real-time virtual rooms, synchronized collaborative whiteboards, shared resource drives, gamified peer quizzing, and a tutor marketplace.
 
-📺 **[▶️ Watch Project Demo Video on Google Drive](https://drive.google.com/file/d/1m9ai4sW3XU7calVZMfBTl7EGY8MGm6e1/view?usp=sharing)**
+---
+
+### 🔗 Project Links
+- 🌐 **Live Application**: [https://studysync-collaborative-study-platf.vercel.app](https://studysync-collaborative-study-platf.vercel.app)
+- 💻 **GitHub Repository**: [https://github.com/suruthi2007/studysync-collaborative-study-platform](https://github.com/suruthi2007/studysync-collaborative-study-platform)
+- 📺 **Demo Video Walkthrough**: [Watch on Google Drive](https://drive.google.com/file/d/1m9ai4sW3XU7calVZMfBTl7EGY8MGm6e1/view?usp=sharing)
 
 ---
 
@@ -122,8 +129,8 @@ studysync/
 ### 2. Quick Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/studysync.git
-cd studysync
+git clone https://github.com/suruthi2007/studysync-collaborative-study-platform.git
+cd studysync-collaborative-study-platform
 
 # Install root, backend, and frontend dependencies
 npm run install:all
@@ -143,18 +150,20 @@ The app will be available at:
 
 ---
 
-## 🎥 Video Demonstration & Recording Guide
+## 🎥 Video Demonstration & Live Walkthrough
 
-### 📺 Watch the Demo Video
-▶️ **[Click here to view the StudySync Video Sample on Google Drive](https://drive.google.com/file/d/1m9ai4sW3XU7calVZMfBTl7EGY8MGm6e1/view?usp=sharing)**
+### 🔗 Quick Access
+- 🌐 **Live App**: [https://studysync-collaborative-study-platf.vercel.app](https://studysync-collaborative-study-platf.vercel.app)
+- 📺 **Watch Demo Video**: [StudySync Video Sample on Google Drive](https://drive.google.com/file/d/1m9ai4sW3XU7calVZMfBTl7EGY8MGm6e1/view?usp=sharing)
+- 💻 **GitHub Repo**: [suruthi2007/studysync-collaborative-study-platform](https://github.com/suruthi2007/studysync-collaborative-study-platform)
 
 ### 👥 Steps to Replicate the Collaborative Multi-User Demo:
-A core deliverable for the internship is demonstrating real-time synchronization between two different users:
+Demonstrating real-time synchronization between two different users can be done on the **[Live App](https://studysync-collaborative-study-platf.vercel.app)** or locally:
 
-1. Open **Window A** (e.g. Standard Chrome) and visit `http://localhost:5173`.
+1. Open **Window A** (e.g. Standard Chrome) and visit the [Live App](https://studysync-collaborative-study-platf.vercel.app) (or `http://localhost:5173`).
    - In the top navbar, confirm persona is set to **👩 Alice**.
    - Click **"Virtual Study Room"** on *Calculus 101*.
-2. Open **Window B** (e.g. Chrome Incognito or Edge) side-by-side with Window A and visit `http://localhost:5173`.
+2. Open **Window B** (e.g. Chrome Incognito or Edge) side-by-side with Window A and visit the [Live App](https://studysync-collaborative-study-platf.vercel.app) (or `http://localhost:5173`).
    - In the top navbar demo switcher, click **👨 Bob**.
    - Click **"Virtual Study Room"** on *Calculus 101*.
 3. **Show Real-Time Drawing Sync**:
