@@ -8,6 +8,8 @@
 
 > **Full-Stack Internship Capstone Project**: Recreating the vibrant "library study group" vibe digitally through real-time virtual rooms, synchronized collaborative whiteboards, shared resource drives, gamified peer quizzing, and a tutor marketplace.
 
+📺 **[▶️ Watch Project Demo Video on Google Drive](https://drive.google.com/file/d/1m9ai4sW3XU7calVZMfBTl7EGY8MGm6e1/view?usp=sharing)**
+
 ---
 
 ## 🌟 Architecture & Completed Phases
@@ -141,8 +143,12 @@ The app will be available at:
 
 ---
 
-## 🎥 Recording the Collaborative Demo Video
+## 🎥 Video Demonstration & Recording Guide
 
+### 📺 Watch the Demo Video
+▶️ **[Click here to view the StudySync Video Sample on Google Drive](https://drive.google.com/file/d/1m9ai4sW3XU7calVZMfBTl7EGY8MGm6e1/view?usp=sharing)**
+
+### 👥 Steps to Replicate the Collaborative Multi-User Demo:
 A core deliverable for the internship is demonstrating real-time synchronization between two different users:
 
 1. Open **Window A** (e.g. Standard Chrome) and visit `http://localhost:5173`.
