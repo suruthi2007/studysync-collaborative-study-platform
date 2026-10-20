@@ -1,4 +1,5 @@
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const path = require('path');
 const fs = require('fs');
 
@@ -68,8 +69,29 @@ const uploadFile = async (file) => {
   };
 };
 
+/**
+ * Generate a pre-signed GetObject URL for secure access to private S3 files
+ * @param {string} key S3 object key
+ * @param {number} expiresIn Expiration time in seconds (default 300 = 5 minutes)
+ */
+const generatePresignedDownloadUrl = async (key, expiresIn = 300) => {
+  if (!s3Configured || !s3Client) {
+    throw new Error('AWS S3 is not configured');
+  }
+
+  const command = new GetObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET,
+    Key: key,
+  });
+
+  return await getSignedUrl(s3Client, command, { expiresIn });
+};
+
 module.exports = {
   uploadFile,
+  generatePresignedDownloadUrl,
+  s3Client,
   s3Configured,
   uploadsDir,
 };
+

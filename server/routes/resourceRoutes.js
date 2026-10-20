@@ -5,7 +5,7 @@ const path = require('path');
 const Resource = require('../models/Resource');
 const Group = require('../models/Group');
 const { protect } = require('../middleware/authMiddleware');
-const { uploadFile, uploadsDir } = require('../config/storage');
+const { uploadFile, uploadsDir, generatePresignedDownloadUrl, s3Configured, s3Client } = require('../config/storage');
 
 // Multer temporary local destination before S3 or local storage
 const storage = multer.diskStorage({
@@ -104,6 +104,64 @@ router.get('/group/:groupId', protect, async (req, res) => {
 
     res.json({ success: true, resources });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   GET /api/resources/:id/download
+// @desc    Generate secure download/view URL (presigned S3 URL or local upload URL)
+router.get('/:id/download', protect, async (req, res) => {
+  try {
+    const resource = await Resource.findById(req.params.id);
+    if (!resource) {
+      return res.status(404).json({ success: false, message: 'Resource not found' });
+    }
+
+    // Verify group membership
+    const group = await Group.findById(resource.group);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Study group not found' });
+    }
+
+    const isMember = group.members.some(
+      (m) => m.toString() === req.user._id.toString()
+    );
+    if (!isMember) {
+      return res.status(403).json({ success: false, message: 'Access denied: Only group members can download or view this file' });
+    }
+
+    // If file is stored in S3, generate a pre-signed GetObject URL (expires in 5 minutes = 300s)
+    if (resource.storageType === 's3' && s3Configured && s3Client) {
+      let key = '';
+      try {
+        if (resource.fileUrl.startsWith('http')) {
+          const parsedUrl = new URL(resource.fileUrl);
+          if (parsedUrl.hostname.includes('.amazonaws.com')) {
+            key = decodeURIComponent(parsedUrl.pathname.replace(/^\//, ''));
+          }
+        } else {
+          key = resource.fileUrl.replace(/^\//, '');
+        }
+      } catch (err) {
+        key = resource.fileUrl.replace(/^\//, '');
+      }
+
+      if (key) {
+        const presignedUrl = await generatePresignedDownloadUrl(key, 300);
+        return res.json({ success: true, url: presignedUrl });
+      }
+    }
+
+    // Fallback: Local uploads or static/external URLs
+    let downloadUrl = resource.fileUrl;
+    if (downloadUrl.startsWith('/')) {
+      const hostUrl = req.protocol + '://' + req.get('host');
+      downloadUrl = `${hostUrl}${downloadUrl}`;
+    }
+
+    return res.json({ success: true, url: downloadUrl });
+  } catch (err) {
+    console.error('Download route error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

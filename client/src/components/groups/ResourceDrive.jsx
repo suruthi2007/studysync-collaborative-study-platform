@@ -20,6 +20,7 @@ export default function ResourceDrive({ group }) {
   const [fileTitle, setFileTitle] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const fetchResources = async () => {
     if (!group?._id) return;
@@ -96,6 +97,43 @@ export default function ResourceDrive({ group }) {
       }
     } catch (err) {
       setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  const handleDownload = async (resource) => {
+    // Open blank tab immediately to satisfy browser user gesture requirements
+    const newWindow = window.open('about:blank', '_blank');
+    try {
+      setDownloadingId(resource._id);
+      const res = await fetch(`${API_BASE_URL}/api/resources/${resource._id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        const targetUrl = data.url.startsWith('http')
+          ? data.url
+          : `${API_BASE_URL}${data.url}`;
+        if (newWindow) {
+          newWindow.location.href = targetUrl;
+        } else {
+          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        }
+      } else {
+        if (newWindow) newWindow.close();
+        alert(data.message || 'Failed to retrieve download URL');
+      }
+    } catch (err) {
+      console.error('Download error:', err);
+      const fallbackUrl = resource.fileUrl?.startsWith('http')
+        ? resource.fileUrl
+        : `${API_BASE_URL}${resource.fileUrl || ''}`;
+      if (newWindow) {
+        newWindow.location.href = fallbackUrl;
+      } else {
+        window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+      }
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -276,15 +314,15 @@ export default function ResourceDrive({ group }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <a
-                      href={fileHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(res)}
+                      disabled={downloadingId === res._id}
                       className="btn btn-secondary"
-                      style={{ flex: 1, padding: '0.4rem', fontSize: '0.8rem' }}
+                      style={{ flex: 1, padding: '0.4rem', fontSize: '0.8rem', cursor: 'pointer' }}
                     >
-                      <ExternalLink size={14} /> View / Download
-                    </a>
+                      <ExternalLink size={14} /> {downloadingId === res._id ? 'Opening...' : 'View / Download'}
+                    </button>
                     {isOwner && (
                       <button
                         onClick={() => handleDelete(res._id)}
