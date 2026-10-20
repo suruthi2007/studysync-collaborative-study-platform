@@ -6,11 +6,18 @@ const AuthContext = createContext();
 export const API_BASE_URL = API_URL;
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('studysync_token'));
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('studysync_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('studysync_token'));
   const [loading, setLoading] = useState(true);
 
-  // Initialize or fetch current user profile
+  // Initialize or verify current user profile on reload
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = localStorage.getItem('studysync_token');
@@ -23,16 +30,18 @@ export const AuthProvider = ({ children }) => {
           if (data.success && data.user) {
             setUser(data.user);
             setToken(storedToken);
-            setLoading(false);
-            return;
+            localStorage.setItem('studysync_user', JSON.stringify(data.user));
+          } else {
+            // Token expired or invalid
+            logout();
           }
         } catch (e) {
-          console.warn('Failed to verify token:', e.message);
+          console.warn('Network issue while verifying token; keeping cached profile:', e.message);
         }
+      } else {
+        setUser(null);
+        setToken(null);
       }
-
-      // Default to demo persona Alice Chen for immediate zero-barrier preview
-      await switchPersona('alice');
       setLoading(false);
     };
 
@@ -49,13 +58,14 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ persona }),
       });
       const data = await res.json();
-      if (data.success) {
-        setUser(data.user);
-        setToken(data.token);
-        localStorage.setItem('studysync_token', data.token);
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Demo login failed');
       }
-    } catch (err) {
-      console.error('Error switching persona:', err);
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem('studysync_token', data.token);
+      localStorage.setItem('studysync_user', JSON.stringify(data.user));
+      return data.user;
     } finally {
       setLoading(false);
     }
@@ -68,10 +78,30 @@ export const AuthProvider = ({ children }) => {
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Login failed');
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Login failed');
+    }
     setUser(data.user);
     setToken(data.token);
     localStorage.setItem('studysync_token', data.token);
+    localStorage.setItem('studysync_user', JSON.stringify(data.user));
+    return data.user;
+  };
+
+  const register = async (name, email, password, role = 'student') => {
+    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, role }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Registration failed');
+    }
+    setUser(data.user);
+    setToken(data.token);
+    localStorage.setItem('studysync_token', data.token);
+    localStorage.setItem('studysync_user', JSON.stringify(data.user));
     return data.user;
   };
 
@@ -79,10 +109,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('studysync_token');
+    localStorage.removeItem('studysync_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, switchPersona }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, switchPersona }}>
       {children}
     </AuthContext.Provider>
   );

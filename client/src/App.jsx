@@ -7,6 +7,7 @@ import StudyRoomView from './components/room/StudyRoomView';
 import QuizHub from './components/quiz/QuizHub';
 import TutorMarketplace from './components/tutors/TutorMarketplace';
 import MyBookings from './components/tutors/MyBookings';
+import AuthPage from './components/auth/AuthPage';
 
 function MainApp() {
   const { user, loading } = useAuth();
@@ -36,6 +37,11 @@ function MainApp() {
         </p>
       </div>
     );
+  }
+
+  // Show authentication page if no user is logged in
+  if (!user) {
+    return <AuthPage />;
   }
 
   return (

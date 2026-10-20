@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { API_URL } from '../config';
+import { useAuth } from './AuthContext';
 
 const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
+  const { token } = useAuth();
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -13,6 +15,7 @@ export const SocketProvider = ({ children }) => {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      auth: { token },
     });
 
     newSocket.on('connect', () => {
@@ -30,7 +33,7 @@ export const SocketProvider = ({ children }) => {
     return () => {
       newSocket.disconnect();
     };
-  }, []);
+  }, [token]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

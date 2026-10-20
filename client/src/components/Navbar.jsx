@@ -8,11 +8,12 @@ import {
   GraduationCap, 
   Calendar, 
   Sparkles,
-  UserCheck
+  UserCheck,
+  LogOut
 } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, activeGroup }) {
-  const { user, switchPersona } = useAuth();
+  const { user, switchPersona, logout } = useAuth();
   const { isConnected } = useSocket();
 
   const navItems = [
@@ -189,23 +190,45 @@ export default function Navbar({ activeTab, setActiveTab, activeGroup }) {
             </button>
           </div>
 
-          {/* Active User Avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <img 
-              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=user`} 
-              alt={user?.name || 'User'} 
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                border: '2px solid var(--accent-primary)',
-                background: '#1e293b',
-              }}
-            />
-            <div style={{ display: 'none', sm: 'block' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff' }}>{user?.name}</div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{user?.role}</div>
+          {/* Active User Avatar & Logout */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <img 
+                src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=user`} 
+                alt={user?.name || 'User'} 
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: '2px solid var(--accent-primary)',
+                  background: '#1e293b',
+                }}
+              />
+              <div style={{ display: 'none', sm: 'block' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff' }}>{user?.name}</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{user?.role}</div>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={logout}
+              title="Log out of StudySync"
+              className="btn btn-secondary"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.3rem 0.65rem',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+              }}
+            >
+              <LogOut size={13} />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </div>
